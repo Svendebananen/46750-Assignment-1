@@ -92,6 +92,10 @@ class FlexibleConsumerModel:
         d, m, T = self.data, self.m, self.T
 
         # --- Decision variables --------------------------------------------------------
+        self.var['import']  = m.addVars(T, lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='import')
+        self.var['export']  = m.addVars(T, lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='export')
+        self.var['load']    = m.addVars(T, lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='load')
+        self.var['pv']      = m.addVars(T, lb=-GRB.INFINITY, vtype=GRB.CONTINUOUS, name='pv')
         # TODO: identify and declare the decision variables of your formulation.
         # Store every variable family in self.var["<name>"]: solve() then returns its hourly
         # values automatically as a column of results.hourly.
@@ -110,11 +114,27 @@ class FlexibleConsumerModel:
         #   src/plotting.py work out of the box.
 
         # --- Objective ---------------------------------------------------------------
+        m.setObjective(gp.quicksum(d.consumption_utility*self.var['load'][t] - 
+                                     d.pv_marginal_cost * self.var['pv'][t] - 
+                                    (d.import_tariff + d.energy_price[t])* self.var['import'][t] +
+                                    (d.export_tariff + d.energy_price[t])* self.var['export'][t]  for t in T), GRB.MAXIMIZE)
         # TODO: express the objective function and its direction (GRB.MINIMIZE or GRB.MAXIMIZE):
         #   m.setObjective(gp.quicksum(<expression in t> for t in T), <direction>)
         # The input-data attributes (with units) are documented in src/data_loader.py (InputData).
 
         # --- Constraints -------------------------------------------------------------
+        self.con['power_balances'] = m.addConstrs((self.var['pv'][t] +
+                                                   self.var['import'][t] -
+                                                   self.var['load'][t] -
+                                                   self.var['export'][t] == 0 for t in T),
+                                                   name='power_balances')
+        
+        self.con['load_min'] = m.addConstrs((d.load_min_kWh - self.var['load'][t] <= 0 for t in T), name='load_min')
+        self.con['load_max'] = m.addConstrs(( self.var['load'][t] - d.load_max_kWh <= 0 for t in T), name='load_max')
+        self.con['negativ_import'] = m.addConstrs((-self.var['import'][t] <= 0 for t in T), name='negativ_import')
+        self.con['negativ_export'] = m.addConstrs((-self.var['export'][t] <= 0 for t in T), name='negativ_export')
+        self.con['negativ_pv'] = m.addConstrs((-self.var['pv'][t] <= 0 for t in T), name='negativ_pv')
+        self.con['pv_max'] = m.addConstrs((self.var['pv'][t] - d.pv_available[t] <= 0 for t in T), name='pv_max')
         # TODO: add the constraints of your formulation.
         # Pattern for hourly constraints (one per hour, duals returned as a 24-vector; names are
         # indexed automatically, like for the variables):

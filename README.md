@@ -1,4 +1,4 @@
-# 46750 - Assignment 1: Demand-Side Flexibility in Active Distribution Grids
+  # 46750 - Assignment 1: Demand-Side Flexibility in Active Distribution Grids
 
 Starter repository for **Group Assignment 1** of *46750 - Optimization in Modern Power Systems* (DTU).
 It contains the input data for every question (in `data/`), a small and working Python code base to
