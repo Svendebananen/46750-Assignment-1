@@ -188,13 +188,20 @@ class FlexibleConsumerModel:
                 # No duals available (e.g. model with integer variables)
                 pass
 
+        utility = gp.quicksum(d.consumption_utility*self.var['load'][t].X for t in T)
+        procurement_cost = gp.quicksum(d.pv_marginal_cost * self.var['pv'][t] + 
+                                    (d.import_tariff + d.energy_price[t])* self.var['import'][t] -
+                                    (d.export_tariff + d.energy_price[t])* self.var['export'][t]  for t in T)
+
         return Results(
             question=d.question,
             status=status,
             objective=self.m.ObjVal,
             hourly=hourly,
             duals=duals,
-            meta={"scalar_variables": scalars},
+            meta={"scalar_variables": scalars,
+                  "utility": utility,
+                  "procurement_cost": procurement_cost},
         )
 
 
