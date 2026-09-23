@@ -117,7 +117,7 @@ class FlexibleConsumerModel:
         m.setObjective(gp.quicksum(d.consumption_utility*self.var['load'][t] - 
                                      d.pv_marginal_cost * self.var['pv'][t] - 
                                     (d.import_tariff + d.energy_price[t])* self.var['import'][t] +
-                                    (d.export_tariff + d.energy_price[t])* self.var['export'][t]  for t in T), GRB.MAXIMIZE)
+                                    (-d.export_tariff + d.energy_price[t])* self.var['export'][t]  for t in T), GRB.MAXIMIZE)
         # TODO: express the objective function and its direction (GRB.MINIMIZE or GRB.MAXIMIZE):
         #   m.setObjective(gp.quicksum(<expression in t> for t in T), <direction>)
         # The input-data attributes (with units) are documented in src/data_loader.py (InputData).
