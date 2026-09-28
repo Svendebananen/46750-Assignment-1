@@ -16,6 +16,7 @@ import matplotlib
 
 from src.data_loader import load_question, list_questions
 from src.model import FlexibleConsumerModel, Results
+from src.model_q2_linear import LinearDisutilityModel, Results
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
 from src.scenarios import scale_prices, scale_pv, set_tariffs
 
@@ -27,7 +28,10 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
     print(data.summary(), "\n")
     plot_inputs(data, save_to=out / "inputs.png")
 
-    model = FlexibleConsumerModel(data).build()
+    if question == "Q2_linear":
+        model = LinearDisutilityModel(data).build()
+    else:
+        model = FlexibleConsumerModel(data).build()
     try:
         results = model.solve()
     except NotImplementedError as e:
@@ -35,6 +39,12 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
         return None
 
     print(results, "\n")
+    print("Procurement cost:", results.meta["procurement_cost"])
+    print("Disutility:", results.meta["disutility"])
+    print("Daily energy:", results.meta["daily_energy"])
+    print("Total deviation:", results.meta["total_deviation"])
+    print("Binding hours:", results.meta["binding_hours"])
+    print()
     results.save(out)
     plot_schedule(results, data, save_to=out / "schedule.png")
     plot_duals(results, data, save_to=out / "duals.png")
@@ -55,7 +65,11 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
     }
     runs: dict[str, Results] = {}
     for name, data in scenarios.items():
-        results = FlexibleConsumerModel(data).build().solve()
+        if question == "Q2_linear":
+                model = LinearDisutilityModel(data).build()
+        else:
+                model = FlexibleConsumerModel(data).build()
+        results = model.solve()
         results.save(out, tag=name)
         runs[name] = results
         print(f"{name:>14}: cost {results.objective:8.2f} DKK | import {results.hourly['import'].sum():5.1f} kWh"
