@@ -17,6 +17,7 @@ import matplotlib
 from src.data_loader import load_question, list_questions
 from src.model import FlexibleConsumerModel, Results
 from src.model_q2_linear import LinearDisutilityModel, Results
+from src.model_q2_quadratic import QuadraticDisutilityModel, Results
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
 from src.scenarios import scale_prices, scale_pv, set_tariffs
 
@@ -30,6 +31,8 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
 
     if question == "Q2_linear":
         model = LinearDisutilityModel(data).build()
+    elif question == "Q2_quadratic":
+        model = QuadraticDisutilityModel(data).build()
     else:
         model = FlexibleConsumerModel(data).build()
     try:
@@ -67,6 +70,8 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
     for name, data in scenarios.items():
         if question == "Q2_linear":
                 model = LinearDisutilityModel(data).build()
+        elif question == "Q2_quadratic":
+                model = QuadraticDisutilityModel(data).build()
         else:
                 model = FlexibleConsumerModel(data).build()
         results = model.solve()
