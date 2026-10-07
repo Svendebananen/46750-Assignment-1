@@ -42,11 +42,11 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
         return None
 
     print(results, "\n")
-    print("Procurement cost:", results.meta["procurement_cost"])
-    print("Disutility:", results.meta["disutility"])
-    print("Daily energy:", results.meta["daily_energy"])
-    print("Total deviation:", results.meta["total_deviation"])
-    print("Binding hours:", results.meta["binding_hours"])
+    #print("Procurement cost:", results.meta["procurement_cost"])
+    #print("Disutility:", results.meta["disutility"])
+    #print("Daily energy:", results.meta["daily_energy"])
+    #print("Total deviation:", results.meta["total_deviation"])
+    #print("Binding hours:", results.meta["binding_hours"])
     print()
     results.save(out)
     plot_schedule(results, data, save_to=out / "schedule.png")
