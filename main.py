@@ -16,12 +16,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from src.data_loader import load_question, list_questions
-from src.model import FlexibleConsumerModel, Results
-from src.model_q2_linear import LinearDisutilityModel
-from src.model_q2_quadratic import (
+from src.model import (
     BatteryMinimumDailyEnergyModel,
+    FlexibleConsumerModel,
+    LinearDisutilityModel,
     MinimumDailyEnergyModel,
     QuadraticDisutilityModel,
+    Results,
 )
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
 from src.scenarios import scale_prices, scale_pv, set_tariffs

@@ -60,7 +60,7 @@ input figure to `results/Q1_caseA/`. Until you complete the model (see Section 3
 main.py                  Entry point: load data -> build model -> solve -> save results and figures
 src/
   data_loader.py         load_question("Q1_caseA") -> InputData (all parameters, with units)
-  model.py               FlexibleConsumerModel: build() / solve() -> Results (primal + dual values)
+  model.py               All model classes: shared base plus one class per formulation
   scenarios.py           Helpers that derive sensitivity scenarios from a base InputData
   plotting.py            Figures for inputs, optimal schedule, duals and scenario comparisons
 data/
@@ -78,9 +78,8 @@ requirements.txt, environment.yaml, LICENSE, .gitignore
 
 The modules mirror the workflow you are asked to implement and document: *data loading*,
 *model building*, *solving and extracting results*, and *plotting*. `src/model.py` contains the
-shared model lifecycle and physical constraints. The question-specific modules only add their
-objective terms and additional variables or constraints. `main.py` maps each case to its model
-class and contains the experiment orchestration.
+shared model lifecycle, physical constraints, and all question-specific model classes. `main.py`
+maps each case to its model class and contains the experiment orchestration.
 
 ## 3. How to use the code
 

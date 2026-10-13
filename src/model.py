@@ -109,6 +109,11 @@ class ConsumerModel:
     def _objective_sense(self) -> int:
         return GRB.MINIMIZE
 
+    def _reference_load(self):
+        if self.data.reference_load is None:
+            raise ValueError(f"{self.data.question} does not define reference_load.")
+        return self.data.reference_load
+
     def _power_balance(self, t: int):
         return (
             self.var["pv"][t]
@@ -205,6 +210,8 @@ class FlexibleConsumerModel(ConsumerModel):
 
     def _objective(self):
         d = self.data
+        if d.consumption_utility is None:
+            raise ValueError(f"{d.question} does not define consumption_utility.")
         return gp.quicksum(
             d.consumption_utility * self.var["load"][t]
             - d.pv_marginal_cost * self.var["pv"][t]
@@ -226,3 +233,150 @@ class FlexibleConsumerModel(ConsumerModel):
             self.data.consumption_utility * results.hourly["load"].sum()
         )
         return results
+
+
+class LinearDisutilityModel(ConsumerModel):
+    """Question 2: minimise procurement cost plus absolute deviation."""
+
+    def _add_variables(self) -> None:
+        super()._add_variables()
+        self.var["deviation"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="deviation"
+        )
+
+    def _objective(self):
+        d = self.data
+        if d.linear_disutility is None:
+            raise ValueError(f"{d.question} does not define linear_disutility.")
+        return gp.quicksum(
+            d.pv_marginal_cost * self.var["pv"][t]
+            + (d.import_tariff + d.energy_price[t]) * self.var["import"][t]
+            - (d.energy_price[t] - d.export_tariff) * self.var["export"][t]
+            + d.linear_disutility * self.var["deviation"][t]
+            for t in self.T
+        )
+
+    def _add_constraints(self) -> None:
+        super()._add_constraints()
+        reference_load = self._reference_load()
+        self.con["deviation_pos"] = self.m.addConstrs(
+            (
+                self.var["load"][t] - reference_load[t] - self.var["deviation"][t] <= 0
+                for t in self.T
+            ),
+            name="deviation_pos",
+        )
+        self.con["deviation_neg"] = self.m.addConstrs(
+            (
+                reference_load[t] - self.var["load"][t] - self.var["deviation"][t] <= 0
+                for t in self.T
+            ),
+            name="deviation_neg",
+        )
+
+    def _extract_results(self, status: str) -> Results:
+        results = super()._extract_results(status)
+        deviation = results.hourly["deviation"]
+        if self.data.linear_disutility is None:
+            raise ValueError(f"{self.data.question} does not define linear_disutility.")
+        results.meta.update(
+            disutility=float(self.data.linear_disutility * deviation.sum()),
+            total_deviation=float(deviation.sum()),
+            binding_hours=int((deviation > 1e-6).sum()),
+        )
+        return results
+
+
+class QuadraticDisutilityModel(ConsumerModel):
+    """Question 2: minimise procurement cost plus quadratic deviation."""
+
+    def _objective(self):
+        d = self.data
+        if d.quadratic_disutility is None:
+            raise ValueError(f"{d.question} does not define quadratic_disutility.")
+        reference_load = self._reference_load()
+        return gp.quicksum(
+            d.pv_marginal_cost * self.var["pv"][t]
+            + (d.import_tariff + d.energy_price[t]) * self.var["import"][t]
+            - (d.energy_price[t] - d.export_tariff) * self.var["export"][t]
+            + d.quadratic_disutility
+            * (self.var["load"][t] - reference_load[t]) ** 2
+            for t in self.T
+        )
+
+    def _extract_results(self, status: str) -> Results:
+        results = super()._extract_results(status)
+        deviation = results.hourly["load"] - results.hourly["reference_load"]
+        if self.data.quadratic_disutility is None:
+            raise ValueError(f"{self.data.question} does not define quadratic_disutility.")
+        results.meta.update(
+            disutility=float(self.data.quadratic_disutility * (deviation**2).sum()),
+            total_deviation=float(deviation.abs().sum()),
+            binding_hours=int((deviation.abs() > 1e-6).sum()),
+        )
+        return results
+
+
+class MinimumDailyEnergyModel(QuadraticDisutilityModel):
+    """Question 3: quadratic disutility with a daily energy requirement."""
+
+    def _add_constraints(self) -> None:
+        super()._add_constraints()
+        if self.data.min_daily_energy_kWh is None:
+            raise ValueError(f"{self.data.question} does not define min_daily_energy_kWh.")
+        self.con["minimum_daily_energy"] = self.m.addConstr(
+            gp.quicksum(self.var["load"][t] for t in self.T)
+            >= self.data.min_daily_energy_kWh,
+            name="minimum_daily_energy",
+        )
+
+
+class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
+    """Question 3 with a battery and no terminal state-of-charge requirement."""
+
+    def _add_variables(self) -> None:
+        super()._add_variables()
+        self.var["charge"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="charge"
+        )
+        self.var["discharge"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="discharge"
+        )
+        self.var["soc"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="soc"
+        )
+
+    def _power_balance(self, t: int):
+        return super()._power_balance(t) - self.var["charge"][t] + self.var["discharge"][t]
+
+    def _add_constraints(self) -> None:
+        super()._add_constraints()
+        d = self.data
+        if d.battery_capacity_kWh is None:
+            raise ValueError(f"{d.question} does not define battery parameters.")
+        self.con["charge_max"] = self.m.addConstrs(
+            (self.var["charge"][t] <= d.battery_max_charge_kW for t in self.T),
+            name="charge_max",
+        )
+        self.con["discharge_max"] = self.m.addConstrs(
+            (self.var["discharge"][t] <= d.battery_max_discharge_kW for t in self.T),
+            name="discharge_max",
+        )
+        self.con["soc_max"] = self.m.addConstrs(
+            (self.var["soc"][t] <= d.battery_capacity_kWh for t in self.T),
+            name="soc_max",
+        )
+        self.con["soc_balance"] = self.m.addConstrs(
+            (
+                self.var["soc"][t]
+                == (
+                    d.battery_initial_soc_kWh
+                    if t == 0
+                    else self.var["soc"][t - 1]
+                )
+                + d.battery_charging_efficiency * self.var["charge"][t]
+                - self.var["discharge"][t] / d.battery_discharging_efficiency
+                for t in self.T
+            ),
+            name="soc_balance",
+        )
