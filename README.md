@@ -60,7 +60,7 @@ input figure to `results/Q1_caseA/`. Until you complete the model (see Section 3
 main.py                  Entry point: load data -> build model -> solve -> save results and figures
 src/
   data_loader.py         load_question("Q1_caseA") -> InputData (all parameters, with units)
-  model.py               FlexibleConsumerModel: build() / solve() -> Results (primal + dual values)
+  model.py               All model classes: shared base plus one class per formulation
   scenarios.py           Helpers that derive sensitivity scenarios from a base InputData
   plotting.py            Figures for inputs, optimal schedule, duals and scenario comparisons
 data/
@@ -76,10 +76,10 @@ results/                 Written by main.py (git-ignored)
 requirements.txt, environment.yaml, LICENSE, .gitignore
 ```
 
-The four modules mirror the workflow you are asked to implement and document: *data loading*,
-*model building*, *solving and extracting results*, *plotting*. Keep them separate as your code grows -
-for example one model class per question in `src/model.py` (or one file per question), and one function per
-experiment in `main.py`.
+The modules mirror the workflow you are asked to implement and document: *data loading*,
+*model building*, *solving and extracting results*, and *plotting*. `src/model.py` contains the
+shared model lifecycle, physical constraints, and all question-specific model classes. `main.py`
+maps each case to its model class and contains the experiment orchestration.
 
 ## 3. How to use the code
 
@@ -109,11 +109,11 @@ high_spread = scale_prices(data, factor=2.0, keep_mean=True)
 results_hs = FlexibleConsumerModel(high_spread).build().solve()
 ```
 
-**What you need to implement.** `FlexibleConsumerModel.build()` in `src/model.py` is entirely `TODO`:
-identify and declare the decision variables of your formulation, then add the objective and the
-constraints - the gurobipy pattern for each step is shown in comments (including the `vtype=` to use
-if you ever declare binary variables). Complete it with your formulation from Question 1, then extend
-or subclass it for the following questions.
+**Model structure.** `ConsumerModel` in `src/model.py` owns the common build/solve lifecycle,
+shared power-flow constraints, and result extraction. `FlexibleConsumerModel` implements Question 1.
+`LinearDisutilityModel`, `QuadraticDisutilityModel`, `MinimumDailyEnergyModel`, and
+`BatteryMinimumDailyEnergyModel` specialise it for the remaining cases. Add a new formulation by
+subclassing `ConsumerModel` and overriding only the objective or constraints that differ.
 Everything downstream (solving, extraction of primal and dual values, saving, plotting) already works.
 
 **Conventions that make the primal and dual values come out for free**

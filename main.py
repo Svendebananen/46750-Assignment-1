@@ -13,15 +13,34 @@ import argparse
 from pathlib import Path
 
 import matplotlib
+import matplotlib.pyplot as plt
 
 from src.data_loader import load_question, list_questions
-from src.model import FlexibleConsumerModel, Results
-from src.model_q2_linear import LinearDisutilityModel, Results
-from src.model_q2_quadratic import QuadraticDisutilityModel, Results
+from src.model import (
+    BatteryMinimumDailyEnergyModel,
+    FlexibleConsumerModel,
+    LinearDisutilityModel,
+    MinimumDailyEnergyModel,
+    QuadraticDisutilityModel,
+    Results,
+)
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
 from src.scenarios import scale_prices, scale_pv, set_tariffs
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
+
+MODEL_TYPES = {
+    "Q2_linear": LinearDisutilityModel,
+    "Q2_quadratic": QuadraticDisutilityModel,
+    "Q3": MinimumDailyEnergyModel,
+    "Q3_battery": BatteryMinimumDailyEnergyModel,
+}
+
+
+def build_model(question: str, data):
+    """Create the model formulation associated with a data case."""
+    model_type = MODEL_TYPES.get(question, FlexibleConsumerModel)
+    return model_type(data).build()
 
 
 def run_base_case(question: str, out: Path, show: bool) -> Results | None:
@@ -29,12 +48,7 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
     print(data.summary(), "\n")
     plot_inputs(data, save_to=out / "inputs.png")
 
-    if question == "Q2_linear":
-        model = LinearDisutilityModel(data).build()
-    elif question == "Q2_quadratic":
-        model = QuadraticDisutilityModel(data).build()
-    else:
-        model = FlexibleConsumerModel(data).build()
+    model = build_model(question, data)
     try:
         results = model.solve()
     except NotImplementedError as e:
@@ -52,7 +66,7 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
     plot_schedule(results, data, save_to=out / "schedule.png")
     plot_duals(results, data, save_to=out / "duals.png")
     if show:
-        matplotlib.pyplot.show()
+        plt.show()
     return results
 
 
@@ -68,12 +82,7 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
     }
     runs: dict[str, Results] = {}
     for name, data in scenarios.items():
-        if question == "Q2_linear":
-                model = LinearDisutilityModel(data).build()
-        elif question == "Q2_quadratic":
-                model = QuadraticDisutilityModel(data).build()
-        else:
-                model = FlexibleConsumerModel(data).build()
+        model = build_model(question, data)
         results = model.solve()
         results.save(out, tag=name)
         runs[name] = results
