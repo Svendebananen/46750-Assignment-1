@@ -25,7 +25,7 @@ from src.model import (
     Results,
 )
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
-from src.scenarios import scale_prices, scale_pv, set_tariffs, set_load_preferences
+from src.scenarios import Set_quadratic_disutility, scale_prices, scale_pv, set_tariffs, set_load_preferences
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
@@ -70,11 +70,13 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
     base = load_question(question)
     scenarios = {
         "base": base,
-        "flat_prices": scale_prices(base, factor=0.0, keep_mean=True),
-        "double_spread": scale_prices(base, factor=2.0, keep_mean=True),
-        "no_tariffs": set_tariffs(base, import_tariff=0.0, export_tariff=0.0),
-        "no_pv": scale_pv(base, factor=0.0),
+        # "flat_prices": scale_prices(base, factor=0.0, keep_mean=True),
+        # "double_spread": scale_prices(base, factor=2.0, keep_mean=True),
+        # "no_tariffs": set_tariffs(base, import_tariff=0.0, export_tariff=0.0),
+        # "no_pv": scale_pv(base, factor=0.0),
         "Increase_min_And_max_load": set_load_preferences(base, load_max_kWh=7.0, load_min_kWh=1.0),
+        "Increase_E_min": set_load_preferences(base, min_daily_energy_kWh=60.0),
+        "Decrease_quadratic_disutility": Set_quadratic_disutility(base, value=0.5),
     }
     runs: dict[str, Results] = {}
     for name, data in scenarios.items():
