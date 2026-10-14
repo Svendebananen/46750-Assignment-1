@@ -69,3 +69,14 @@ def set_load_preferences(
         load_min_kWh=data.load_min_kWh if load_min_kWh is None else load_min_kWh,
         min_daily_energy_kWh=data.min_daily_energy_kWh if min_daily_energy_kWh is None else min_daily_energy_kWh,
     )
+
+
+def Set_quadratic_disutility(
+    data: InputData,
+    value: float
+) -> InputData:
+    """Override the quadratic disutility parameter (DKK/kWh²)."""
+    return replace(
+        data,
+        quadratic_disutility=data.quadratic_disutility if value is None else value
+    )
