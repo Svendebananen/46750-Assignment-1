@@ -331,52 +331,52 @@ class MinimumDailyEnergyModel(QuadraticDisutilityModel):
         )
 
 
-# class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
-#     """Question 3 with a battery and no terminal state-of-charge requirement."""
+class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
+    """Question 3 with a battery and no terminal state-of-charge requirement."""
 
-#     def _add_variables(self) -> None:
-#         super()._add_variables()
-#         self.var["charge"] = self.m.addVars(
-#             self.T, lb=0, vtype=GRB.CONTINUOUS, name="charge"
-#         )
-#         self.var["discharge"] = self.m.addVars(
-#             self.T, lb=0, vtype=GRB.CONTINUOUS, name="discharge"
-#         )
-#         self.var["soc"] = self.m.addVars(
-#             self.T, lb=0, vtype=GRB.CONTINUOUS, name="soc"
-#         )
+    def _add_variables(self) -> None:
+        super()._add_variables()
+        self.var["charge"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="charge"
+        )
+        self.var["discharge"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="discharge"
+        )
+        self.var["soc"] = self.m.addVars(
+            self.T, lb=0, vtype=GRB.CONTINUOUS, name="soc"
+        )
 
-#     def _power_balance(self, t: int):
-#         return super()._power_balance(t) - self.var["charge"][t] + self.var["discharge"][t]
+    def _power_balance(self, t: int):
+        return super()._power_balance(t) - self.var["charge"][t] + self.var["discharge"][t]
 
-#     def _add_constraints(self) -> None:
-#         super()._add_constraints()
-#         d = self.data
-#         if d.battery_capacity_kWh is None:
-#             raise ValueError(f"{d.question} does not define battery parameters.")
-#         self.con["charge_max"] = self.m.addConstrs(
-#             (self.var["charge"][t] <= d.battery_max_charge_kW for t in self.T),
-#             name="charge_max",
-#         )
-#         self.con["discharge_max"] = self.m.addConstrs(
-#             (self.var["discharge"][t] <= d.battery_max_discharge_kW for t in self.T),
-#             name="discharge_max",
-#         )
-#         self.con["soc_max"] = self.m.addConstrs(
-#             (self.var["soc"][t] <= d.battery_capacity_kWh for t in self.T),
-#             name="soc_max",
-#         )
-#         self.con["soc_balance"] = self.m.addConstrs(
-#             (
-#                 self.var["soc"][t]
-#                 == (
-#                     d.battery_initial_soc_kWh
-#                     if t == 0
-#                     else self.var["soc"][t - 1]
-#                 )
-#                 + d.battery_charging_efficiency * self.var["charge"][t]
-#                 - self.var["discharge"][t] / d.battery_discharging_efficiency
-#                 for t in self.T
-#             ),
-#             name="soc_balance",
-#         )
+    def _add_constraints(self) -> None:
+        super()._add_constraints()
+        d = self.data
+        if d.battery_capacity_kWh is None:
+            raise ValueError(f"{d.question} does not define battery parameters.")
+        self.con["charge_max"] = self.m.addConstrs(
+            (self.var["charge"][t] <= d.battery_max_charge_kW for t in self.T),
+            name="charge_max",
+        )
+        self.con["discharge_max"] = self.m.addConstrs(
+            (self.var["discharge"][t] <= d.battery_max_discharge_kW for t in self.T),
+            name="discharge_max",
+        )
+        self.con["soc_max"] = self.m.addConstrs(
+            (self.var["soc"][t] <= d.battery_capacity_kWh for t in self.T),
+            name="soc_max",
+        )
+        self.con["soc_balance"] = self.m.addConstrs(
+            (
+                self.var["soc"][t]
+                == (
+                    d.battery_initial_soc_kWh
+                    if t == 0
+                    else self.var["soc"][t - 1]
+                )
+                + d.battery_charging_efficiency * self.var["charge"][t]
+                - self.var["discharge"][t] / d.battery_discharging_efficiency
+                for t in self.T
+            ),
+            name="soc_balance",
+        )
