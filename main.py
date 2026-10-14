@@ -25,7 +25,7 @@ from src.model import (
     Results,
 )
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
-from src.scenarios import scale_prices, scale_pv, set_tariffs
+from src.scenarios import scale_prices, scale_pv, set_tariffs, set_load_preferences
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
@@ -56,11 +56,6 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
         return None
 
     print(results, "\n")
-    #print("Procurement cost:", results.meta["procurement_cost"])
-    #print("Disutility:", results.meta["disutility"])
-    #print("Daily energy:", results.meta["daily_energy"])
-    #print("Total deviation:", results.meta["total_deviation"])
-    #print("Binding hours:", results.meta["binding_hours"])
     print()
     results.save(out)
     plot_schedule(results, data, save_to=out / "schedule.png")
@@ -79,6 +74,7 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
         "double_spread": scale_prices(base, factor=2.0, keep_mean=True),
         "no_tariffs": set_tariffs(base, import_tariff=0.0, export_tariff=0.0),
         "no_pv": scale_pv(base, factor=0.0),
+        "Increase_min_And_max_load": set_load_preferences(base, load_max_kWh=7.0, load_min_kWh=1.0),
     }
     runs: dict[str, Results] = {}
     for name, data in scenarios.items():
@@ -87,7 +83,8 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
         results.save(out, tag=name)
         runs[name] = results
         print(f"{name:>14}: cost {results.objective:8.2f} DKK | import {results.hourly['import'].sum():5.1f} kWh"
-              f" | export {results.hourly['export'].sum():5.1f} kWh")
+              f" | export {results.hourly['export'].sum():5.1f} kWh" f" | load {results.hourly['load'].sum():5.1f} kWh")
+        plot_schedule(results, data, save_to=out / f"{name}_schedule.png")
     plot_scenario_comparison(runs, "objective", save_to=out / "scenarios_cost.png")
     return runs
 
