@@ -29,6 +29,11 @@ class Results:
         self.hourly.to_csv(folder / f"{stem}_hourly.csv", index_label="hour")
         with open(folder / f"{stem}_summary.txt", "w", encoding="utf-8") as f:
             f.write(f"status    : {self.status}\nobjective : {self.objective:.4f} DKK\n")
+            if "final_soc_kWh" in self.meta:
+                f.write(f"final SoC : {self.meta['final_soc_kWh']:.4f} kWh\n")
+                f.write(
+                    f"terminal value : {self.meta['terminal_soc_value_DKK']:.4f} DKK\n"
+                )
             for name, value in self.duals.items():
                 f.write(f"dual[{name}] : {value:.4f}\n")
 
@@ -38,11 +43,17 @@ class Results:
             for name in ("import", "export", "load", "pv")
             if name in self.hourly
         )
-        return (
+        text = (
             f"status: {self.status} | objective: {self.objective:.2f} DKK\n"
             f"daily totals (kWh): {daily}"
             + (f"\nduals: {self.duals}" if self.duals else "")
         )
+        if "final_soc_kWh" in self.meta:
+            text += (
+                f"\nterminal battery: final SoC={self.meta['final_soc_kWh']:.2f} kWh"
+                f" | value={self.meta['terminal_soc_value_DKK']:.2f} DKK"
+            )
+        return text
 
 
 def _dual(constraint) -> float:
@@ -332,7 +343,26 @@ class MinimumDailyEnergyModel(QuadraticDisutilityModel):
 
 
 class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
-    """Question 3 with a battery and no terminal state-of-charge requirement."""
+    """Question 3 with a battery and a terminal value for final state of charge."""
+
+    def _objective(self):
+        d = self.data
+        if d.quadratic_disutility is None:
+            raise ValueError(f"{d.question} does not define quadratic_disutility.")
+        if d.battery_end_soc_value_DKK_per_kWh is None:
+            raise ValueError(
+                f"{d.question} does not define battery_end_soc_value_DKK_per_kWh. "
+                "Choose a terminal value for pi before solving the battery model."
+            )
+        reference_load = self._reference_load()
+        return gp.quicksum(
+            d.pv_marginal_cost * self.var["pv"][t]
+            + (d.import_tariff + d.energy_price[t]) * self.var["import"][t]
+            - (d.energy_price[t] - d.export_tariff) * self.var["export"][t]
+            + d.quadratic_disutility
+            * (self.var["load"][t] - reference_load[t]) ** 2
+            for t in self.T
+        ) - d.battery_end_soc_value_DKK_per_kWh * self.var["soc"][self.T[-1]]
 
     def _add_variables(self) -> None:
         super()._add_variables()
@@ -346,7 +376,7 @@ class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
             self.T, lb=0, vtype=GRB.CONTINUOUS, name="soc"
         )
 
-    def _power_balance(self, t: int):
+    def _power_balance(self, t: int): # Adds the battery charge and discharge to the power balance equation
         return super()._power_balance(t) - self.var["charge"][t] + self.var["discharge"][t]
 
     def _add_constraints(self) -> None:
@@ -380,3 +410,17 @@ class BatteryMinimumDailyEnergyModel(MinimumDailyEnergyModel):
             ),
             name="soc_balance",
         )
+
+    def _extract_results(self, status: str) -> Results:
+        results = super()._extract_results(status)
+        final_soc = float(results.hourly["soc"].iloc[-1])
+        terminal_value = self.data.battery_end_soc_value_DKK_per_kWh
+        if terminal_value is None:
+            raise ValueError(
+                f"{self.data.question} does not define battery_end_soc_value_DKK_per_kWh."
+            )
+        results.meta.update(
+            final_soc_kWh=final_soc,
+            terminal_soc_value_DKK=float(terminal_value * final_soc),
+        )
+        return results

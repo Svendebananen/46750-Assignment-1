@@ -74,11 +74,12 @@ class InputData:
     battery_capacity_kWh: float | None = None
     battery_max_charge_kW: float | None = None
     battery_max_discharge_kW: float | None = None
-    battery_charging_efficiency: float | None = None      # fraction of charged energy reaching the battery
-    battery_discharging_efficiency: float | None = None   # fraction of discharged energy reaching the consumer
-    battery_initial_soc_kWh: float | None = None          # state of charge at the start of the day
-    battery_final_soc_kWh: float | None = None            # None ON PURPOSE: the end-of-horizon treatment is
-                                                          # your modeling choice (Question 3.(g))
+    battery_charging_efficiency: float | None = None       # fraction of charged energy reaching the battery
+    battery_discharging_efficiency: float | None = None    # fraction of discharged energy reaching the consumer
+    battery_initial_soc_kWh: float | None = None           # state of charge at the start of the day
+    battery_final_soc_kWh: float | None = None             # None ON PURPOSE: the end-of-horizon treatment is
+                                                           # your modeling choice (Question 3.(g))
+    battery_end_soc_value_DKK_per_kWh: float | None = None # value of the battery's state of charge at the end of the day, DKK/kWh
 
     # Next-day forecasts (for exploring the end-of-horizon choice of Question 3.(g))
     energy_price_next_day: np.ndarray | None = None       # DKK/kWh, 24 values for the following day
@@ -113,6 +114,7 @@ class InputData:
                f"{self.battery_max_discharge_kW:.1f} kW, eta {self.battery_charging_efficiency:.2f}/"
                f"{self.battery_discharging_efficiency:.2f}, initial SoC {self.battery_initial_soc_kWh:.1f} kWh"
                if self.battery_capacity_kWh is not None else "no"),
+            f"Terminal SoC value  : {self.battery_end_soc_value_DKK_per_kWh} DKK/kWh",
             f"Next-day forecasts   : {'yes' if self.energy_price_next_day is not None else 'no'}",
         ]
         return "\n".join(lines)
@@ -214,6 +216,7 @@ def load_question(question: str, data_dir: Path | str = DATA_DIR, consumer_index
     bat_kwargs: dict[str, Any] = {}
     if bat is not None:
         cap = float(bat["storage_capacity_kWh"])
+        hyperparameters = raw["params"].get("hyperparameters") or {}
         bat_kwargs = dict(
             battery_capacity_kWh=cap,
             battery_max_charge_kW=float(bat["max_charging_power_kW"]),
@@ -221,6 +224,9 @@ def load_question(question: str, data_dir: Path | str = DATA_DIR, consumer_index
             battery_charging_efficiency=float(bat["charging_efficiency"]),
             battery_discharging_efficiency=float(bat["discharging_efficiency"]),
             battery_initial_soc_kWh=cap * float(bat["initial_state_of_charge_ratio"]),
+            battery_end_soc_value_DKK_per_kWh=opt_float(
+                hyperparameters, "battery_end_soc_value_DKK_per_kWh"
+            ),
         )
         # battery_final_soc_kWh stays None on purpose (your choice in Question 3.(g)).
 

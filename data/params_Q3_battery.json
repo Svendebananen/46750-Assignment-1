@@ -10,5 +10,7 @@
     ]
     }
 ],
-"hyperparameters": null
+"hyperparameters": {
+    "battery_end_soc_value_DKK_per_kWh": 1.32
+    }
 }
