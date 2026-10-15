@@ -49,7 +49,11 @@ def plot_schedule(results: Results, data: InputData, save_to: Path | str | None 
     """Plot the optimal schedule and prices, plus battery SoC for ``Q3_battery``."""
     hr = results.hourly
     h = hr.index.to_numpy()
-    fig, ax = plt.subplots(figsize=(11, 4.2))
+    is_battery = results.question == "Q3_battery" and "soc" in hr
+    if is_battery:
+        fig, (ax, soc_ax) = plt.subplots(2, 1, figsize=(11, 6.5), sharex=True)
+    else:
+        fig, ax = plt.subplots(figsize=(11, 4.2))
 
     width = 0.8
     if "load" in hr:
@@ -69,29 +73,29 @@ def plot_schedule(results: Results, data: InputData, save_to: Path | str | None 
     ax2.step(h, hr["price"], where="mid", color="C3", lw=1.2, label="energy price")
     ax2.set_ylabel("DKK/kWh", color="C3")
 
-    axes = [ax, ax2]
-    if results.question == "Q3_battery" and "soc" in hr:
-        ax3 = ax.twinx()
-        ax3.spines["right"].set_position(("outward", 55))
-        ax3.step(h, hr["soc"], where="mid", color="C4", lw=1.2, label="battery SoC")
+    if is_battery:
+        soc_ax.step(h, hr["soc"], where="mid", color="C4", lw=1.2, label="battery SoC")
         if data.battery_capacity_kWh is not None:
-            ax3.axhline(
+            soc_ax.axhline(
                 data.battery_capacity_kWh,
                 color="C4",
                 ls=":",
                 lw=1,
                 label="battery capacity",
             )
-        ax3.set_ylabel("battery SoC [kWh]", color="C4")
-        axes.append(ax3)
+        soc_ax.set(xlabel="hour", ylabel="battery SoC [kWh]", title="Battery state")
+        soc_ax.legend(fontsize=8, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.22))
 
-    handles = []
-    labels = []
-    for axis in axes:
-        axis_handles, axis_labels = axis.get_legend_handles_labels()
-        handles.extend(axis_handles)
-        labels.extend(axis_labels)
-    ax.legend(handles, labels, fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.18))
+    handles, labels = ax.get_legend_handles_labels()
+    price_handles, price_labels = ax2.get_legend_handles_labels()
+    ax.legend(
+        handles + price_handles,
+        labels + price_labels,
+        fontsize=8,
+        ncol=3,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+    )
     return _finish(fig, save_to)
 
 
