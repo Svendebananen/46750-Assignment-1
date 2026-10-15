@@ -46,7 +46,7 @@ def plot_inputs(data: InputData, save_to: Path | str | None = None) -> plt.Figur
 
 
 def plot_schedule(results: Results, data: InputData, save_to: Path | str | None = None) -> plt.Figure:
-    """Optimal schedule: load, PV used, import/export, with prices on a second axis."""
+    """Plot the optimal schedule and prices, plus battery SoC for ``Q3_battery``."""
     hr = results.hourly
     h = hr.index.to_numpy()
     fig, ax = plt.subplots(figsize=(11, 4.2))
@@ -69,9 +69,29 @@ def plot_schedule(results: Results, data: InputData, save_to: Path | str | None 
     ax2.step(h, hr["price"], where="mid", color="C3", lw=1.2, label="energy price")
     ax2.set_ylabel("DKK/kWh", color="C3")
 
-    lines, labels = ax.get_legend_handles_labels()
-    l2, lb2 = ax2.get_legend_handles_labels()
-    ax.legend(lines + l2, labels + lb2, fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.18))
+    axes = [ax, ax2]
+    if results.question == "Q3_battery" and "soc" in hr:
+        ax3 = ax.twinx()
+        ax3.spines["right"].set_position(("outward", 55))
+        ax3.step(h, hr["soc"], where="mid", color="C4", lw=1.2, label="battery SoC")
+        if data.battery_capacity_kWh is not None:
+            ax3.axhline(
+                data.battery_capacity_kWh,
+                color="C4",
+                ls=":",
+                lw=1,
+                label="battery capacity",
+            )
+        ax3.set_ylabel("battery SoC [kWh]", color="C4")
+        axes.append(ax3)
+
+    handles = []
+    labels = []
+    for axis in axes:
+        axis_handles, axis_labels = axis.get_legend_handles_labels()
+        handles.extend(axis_handles)
+        labels.extend(axis_labels)
+    ax.legend(handles, labels, fontsize=8, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.18))
     return _finish(fig, save_to)
 
 
