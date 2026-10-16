@@ -85,7 +85,7 @@ def Set_capacity(
     data: InputData,
     value: float | None = None,
 ) -> InputData:
-    """Override the hourly load bounds and/or the minimum daily energy requirement."""
+    """Return a copy with battery capacity overridden in kWh."""
     return replace(
         data,
         battery_capacity_kWh=data.battery_capacity_kWh if value is None else value
