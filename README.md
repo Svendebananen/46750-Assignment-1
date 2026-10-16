@@ -1,9 +1,5 @@
-# 46750 - Assignment 1: Demand-Side Flexibility in Active Distribution Grids
+# 46750 - Assignment 1: Demand-Side Flexibility in Active Distribution Grids - Group 20
 
-This repository contains the Python implementation and input data for Group 20's
-Assignment 1 in *46750 - Optimization in Modern Power Systems* at DTU. The program
-loads one case, builds the corresponding Gurobi optimisation model, solves it, and
-saves numerical results and figures.
 
 ## 1. Requirements and setup
 
@@ -112,26 +108,6 @@ limits, SoC capacity and SoC balance. The optional `max_import_kW` and
 
 ## 5. Input data
 
-### `appliance_params.json`
-
-This is a shared catalogue. Case files refer to catalogue entries by ID.
-
-- `DERs`: PV ID and type, peak power (`max_power_kW`), marginal production cost,
-  current-day profile and next-day profile. Profiles are dimensionless ratios in
-  `[0, 1]`; available energy is `max_power_kW * profile` in kWh per hour.
-- `loads`: hourly minimum and maximum consumption in kWh/h; Question 1 utility in
-  DKK/kWh; linear disutility in DKK/kWh; quadratic disutility in DKK/kWh²;
-  minimum daily energy in kWh; and the reference-load profile ratio.
-- `storages`: battery capacity in kWh, charge/discharge limits in kW, efficiencies,
-  and initial SoC ratio. Efficiencies are fractions, not percentages.
-- `heat_pumps`: unused in this assignment and currently `null`.
-
-### `bus_params.json`
-
-Each bus defines import and export tariffs in DKK/kWh, 24 current-day energy prices,
-24 next-day prices, and optional import/export limits. `null` means no limit is
-provided. Current model code does not enforce the optional limits.
-
 ### `params_<case>.json`
 
 Each case selects a consumer, its connection bus and appliance IDs:
@@ -175,32 +151,15 @@ results.save("results/example")
 - `load_question(question, data_dir=..., consumer_index=0)` returns validated
   `InputData`. `question` may be `Q1_caseA`, `params_Q1_caseA`, or
   `params_Q1_caseA.json`.
-- `list_questions(data_dir=...)` returns the available case names.
-- `InputData.summary()` returns a human-readable overview. Array attributes such as
-  `energy_price`, `pv_available` and `reference_load` use the units stated in their
-  names and comments in `src/data_loader.py`.
 - `FlexibleConsumerModel`, `LinearDisutilityModel`, `QuadraticDisutilityModel`,
   `MinimumDailyEnergyModel` and `BatteryMinimumDailyEnergyModel` build and solve
   the formulations listed above. Call `.build()` before `.solve()`.
-- `Results.hourly` is a pandas DataFrame containing hourly primal variables, prices,
-  available PV, reference load where applicable, and hourly dual columns named
-  `dual_<constraint>`. `Results.duals` contains scalar constraint duals.
-- `Results.save(folder, tag="")` writes `<question>[_<tag>]_hourly.csv` and
-  `<question>[_<tag>]_summary.txt`.
-- `plot_inputs`, `plot_schedule`, `plot_duals` and `plot_scenario_comparison` return
-  Matplotlib figures and optionally save them with `save_to`.
 
 ## 7. Sensitivity helpers
 
 The helpers in `src/scenarios.py` derive a new `InputData` without changing the base
 object:
 
-- `scale_prices(data, factor, keep_mean=False)` scales DKK/kWh prices.
-- `shift_prices(data, delta)` adds a DKK/kWh price offset.
-- `roll_prices(data, hours)` shifts the 24-hour price profile.
-- `set_tariffs(data, import_tariff=None, export_tariff=None)` overrides DKK/kWh tariffs.
-- `scale_pv(data, factor)` scales available PV while keeping the profile ratio in `[0, 1]`.
-- `set_load_preferences(...)` overrides hourly kWh/h bounds or minimum daily kWh.
 - `Set_quadratic_disutility(data, value)` overrides the quadratic coefficient in DKK/kWh².
 - `Set_capacity(data, value)` overrides battery capacity in kWh.
 
@@ -209,16 +168,3 @@ energy and quadratic-disutility scenarios for `Q3`, and price-spread and capacit
 scenarios for `Q3_battery`. Other cases currently run only the base case when the
 flag is supplied.
 
-## 8. Outputs
-
-For a base run, `results/<question>/` contains:
-
-- `inputs.png`: prices, tariffs, available PV and load preferences.
-- `schedule.png`: optimal load, PV, grid exchange and battery state where applicable.
-- `duals.png`: hourly dual variables and price signals.
-- `<question>_hourly.csv`: hourly solution values.
-- `<question>_summary.txt`: solver status, objective, scalar duals and battery metadata.
-
-Scenario runs add one CSV, TXT and schedule PNG per scenario plus
-`scenarios_cost.png`. The `results/` directory is generated output and is not part of
-the source data.
