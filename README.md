@@ -1,5 +1,6 @@
 # 46750 - Assignment 1: Demand-Side Flexibility in Active Distribution Grids - Group 20
 
+The repository follows the recommended structure given in class. If familiar with it. Steps 1 - 3 can be skipped. 
 
 ## 1. Requirements and setup
 
