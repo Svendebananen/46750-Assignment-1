@@ -83,8 +83,43 @@ def plot_schedule(results: Results, data: InputData, save_to: Path | str | None 
                 lw=1,
                 label="battery capacity",
             )
+        # Secondary axis for battery charging/discharging
+        power_ax = soc_ax.twinx()
+
+        # Adjust these names to match results.hourly
+        power_ax.bar(
+            h,
+            hr["charge"],
+            width=0.65,
+            color="green",
+            alpha=0.5,
+            label="Charging"
+        )
+
+        power_ax.bar(
+            h,
+            -hr["discharge"],
+            width=0.65,
+            color="red",
+            alpha=0.5,
+            label="Discharging"
+        )
         soc_ax.set(xlabel="hour", ylabel="battery SoC [kWh]", title="Battery state")
         soc_ax.legend(fontsize=8, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.22))
+        power_ax.set_ylabel("Battery power [kW]")
+
+        # Combine legends from both axes
+        handles1, labels1 = soc_ax.get_legend_handles_labels()
+        handles2, labels2 = power_ax.get_legend_handles_labels()
+
+        soc_ax.legend(
+            handles1 + handles2,
+            labels1 + labels2,
+            fontsize=8,
+            ncol=4,
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.22)
+        )
 
     handles, labels = ax.get_legend_handles_labels()
     price_handles, price_labels = ax2.get_legend_handles_labels()

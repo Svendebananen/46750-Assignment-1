@@ -80,3 +80,13 @@ def Set_quadratic_disutility(
         data,
         quadratic_disutility=data.quadratic_disutility if value is None else value
     )
+
+def Set_capacity(
+    data: InputData,
+    value: float | None = None,
+) -> InputData:
+    """Override the hourly load bounds and/or the minimum daily energy requirement."""
+    return replace(
+        data,
+        battery_capacity_kWh=data.battery_capacity_kWh if value is None else value
+    )

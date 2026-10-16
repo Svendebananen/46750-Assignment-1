@@ -25,7 +25,7 @@ from src.model import (
     Results,
 )
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
-from src.scenarios import Set_quadratic_disutility, scale_prices, scale_pv, set_tariffs, set_load_preferences
+from src.scenarios import Set_capacity, Set_quadratic_disutility, scale_prices, scale_pv, set_tariffs, set_load_preferences
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
@@ -74,9 +74,34 @@ def run_scenarios(question: str, out: Path) -> dict[str, Results]:
         # "double_spread": scale_prices(base, factor=2.0, keep_mean=True),
         # "no_tariffs": set_tariffs(base, import_tariff=0.0, export_tariff=0.0),
         # "no_pv": scale_pv(base, factor=0.0),
-        "Increase_min_And_max_load": set_load_preferences(base, load_max_kWh=7.0, load_min_kWh=1.0),
-        "Increase_E_min": set_load_preferences(base, min_daily_energy_kWh=60.0),
-        "Decrease_quadratic_disutility": Set_quadratic_disutility(base, value=0.5),
+        #"Increase_E_min_20": set_load_preferences(base, min_daily_energy_kWh=20.0),
+        #"Increase_E_min_30": set_load_preferences(base, min_daily_energy_kWh=30.0),
+        #"Increase_E_min_40": set_load_preferences(base, min_daily_energy_kWh=40.0),
+        #"Increase_E_min_50": set_load_preferences(base, min_daily_energy_kWh=50.0),
+        #"Increase_E_min_60": set_load_preferences(base, min_daily_energy_kWh=60.0),
+        #"Decrease_quadratic_disutility_to_0": Set_quadratic_disutility(base, value=0.0),
+        #"Decrease_quadratic_disutility_to_0_125": Set_quadratic_disutility(base, value=0.125),
+        #"Decrease_quadratic_disutility_to_0_25": Set_quadratic_disutility(base, value=0.25),
+        #"Decrease_quadratic_disutility_to_0_5": Set_quadratic_disutility(base, value=0.5),
+        #"Decrease_quadratic_disutility_to_1": Set_quadratic_disutility(base, value=1),
+        #"Decrease_quadratic_disutility_to_2": Set_quadratic_disutility(base, value=2),
+        #"Decrease_quadratic_disutility_to_4": Set_quadratic_disutility(base, value=4),
+        #"Decrease_quadratic_disutility_to_6": Set_quadratic_disutility(base, value=6),
+        "change_in_price_varible_mean" : scale_prices( base, 0, keep_mean= True),
+        "change_in_price_varible_50%" : scale_prices( base, 0.50, keep_mean= True),
+        "change_in_price_varible_150%" : scale_prices( base, 1.5, keep_mean= True),
+        "change_in_price_varible_300%" : scale_prices( base, 3, keep_mean= True),
+        "change_in_price_varible_500%" : scale_prices( base, 5, keep_mean= True),
+        "change_in_price_varible_1000%" : scale_prices( base, 10, keep_mean= True),
+        "Capacity_for_the_battery_1" : Set_capacity(base, 1),
+        "Capacity_for_the_battery_2" : Set_capacity(base, 2),
+        "Capacity_for_the_battery_3" : Set_capacity(base, 3),
+        "Capacity_for_the_battery_6" : Set_capacity(base, 6),
+        "Capacity_for_the_battery_8" : Set_capacity(base, 8),
+        "Capacity_for_the_battery_10" : Set_capacity(base, 10),
+        "Capacity_for_the_battery_14" : Set_capacity(base, 14)
+
+
     }
     runs: dict[str, Results] = {}
     for name, data in scenarios.items():
