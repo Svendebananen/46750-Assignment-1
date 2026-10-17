@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-
+import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -25,7 +25,7 @@ from src.model import (
     Results,
 )
 from src.plotting import plot_duals, plot_inputs, plot_scenario_comparison, plot_schedule
-from src.scenarios import Set_capacity, Set_quadratic_disutility, scale_prices, set_load_preferences
+from src.scenarios import Set_capacity, Set_linear_disutility, Set_quadratic_disutility, scale_prices, set_load_preferences
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
@@ -94,16 +94,32 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
         plt.show()
     return results
 
+def run_q2_sweep(question: str, out: Path) -> None:
+    setter = Set_linear_disutility if question == "Q2_linear" else Set_quadratic_disutility
+    base = load_question(question)
+    rows = []
+    for c in [0.50, 1.00, 1.40, 1.41, 1.50, 1.75, 2.09, 2.10, 2.50, 3.00]:
+        r = build_model(question, setter(base, c)).solve()
+        m = r.meta
+        rows.append([c, m["procurement_cost"], m["disutility"], m["daily_energy"],
+                     m["total_deviation"], m["binding_hours"]])
+    table = pd.DataFrame(rows, columns=["c", "procurement", "disutility", "energy", "deviation", "binding_hours"])
+    table.to_csv(out / f"{question}_sweep.csv", index=False)
+    print(table.round(2).to_string(index=False))
 
 def run_scenarios(question: str, out: Path) -> dict[str, Results]:
     """Run the sensitivity scenarios associated with ``question``.
 
     Every question includes the unmodified base case. Question-specific sensitivity
-    cases are added only for Q3 and Q3_battery. Costs are in DKK and hourly energy
+    cases are added only for Q2, Q3 and Q3_battery. Costs are in DKK and hourly energy
     quantities are in kWh.
     """
     base = load_question(question)
     scenarios = {"base": base}
+
+    if question.startswith("Q2"):
+        run_q2_sweep(question, out)
+        return {}
 
     if question == "Q3":
         scenarios.update({
