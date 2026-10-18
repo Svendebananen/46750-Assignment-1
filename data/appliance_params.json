@@ -326,7 +326,7 @@
       "max_discharging_power_kW": 1.5,
       "charging_efficiency": 0.95,
       "discharging_efficiency": 0.95,
-      "initial_state_of_charge_ratio": 0.0
+      "initial_state_of_charge_ratio": 0.5
     }
   ],
   "heat_pumps": null
