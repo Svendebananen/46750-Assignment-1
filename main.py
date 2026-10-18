@@ -96,9 +96,12 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
 
 def run_q2_sweep(question: str, out: Path) -> None:
     setter = Set_linear_disutility if question == "Q2_linear" else Set_quadratic_disutility
+    values = ([0.50, 1.00, 1.40, 1.41, 1.50, 1.75, 2.09, 2.10, 2.50, 3.00]
+              if question == "Q2_linear"
+              else [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
     base = load_question(question)
     rows = []
-    for c in [0.50, 1.00, 1.40, 1.41, 1.50, 1.75, 2.09, 2.10, 2.50, 3.00]:
+    for c in values:
         r = build_model(question, setter(base, c)).solve()
         m = r.meta
         rows.append([c, m["procurement_cost"], m["disutility"], m["daily_energy"],
