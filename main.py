@@ -95,6 +95,9 @@ def run_base_case(question: str, out: Path, show: bool) -> Results | None:
     return results
 
 def run_q2_sweep(question: str, out: Path) -> None:
+    """Run a sensitivity sweep for c^L [DKK/kWh] (Q2_linear) or c^Q [DKK/kWh^2] (Q2_quadratic)."""
+    """Reports procurement cost, disutility, energy, total deviation and binding hours, and saves them to ``<out>/<question>_sweep.csv``.
+    """
     setter = Set_linear_disutility if question == "Q2_linear" else Set_quadratic_disutility
     values = ([0.50, 1.00, 1.40, 1.41, 1.50, 1.75, 2.09, 2.10, 2.50, 3.00]
               if question == "Q2_linear"
